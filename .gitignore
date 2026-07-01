@@ -1,0 +1,16 @@
+/bin/
+/dist/
+*.test
+*.out
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Local daemon runtime artifacts
+*.sock
+*.lock
+
+# Personal design notes (not for publication)
+spec.md
