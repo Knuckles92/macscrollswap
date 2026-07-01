@@ -9,15 +9,18 @@ on or off based on whether a Bluetooth mouse is currently connected.
 - Global keyboard shortcuts (configurable) for pause and direction-swap.
 - Visual feedback via macOS Notification Center on every state change.
 
-> macOS doesn't ship a way to keep natural scrolling on for the trackpad but
-> off for an external Bluetooth mouse. This tool fills that gap.
+> I realized that macOS doesn't ship a way to keep natural scrolling on for the trackpad but off for an external Bluetooth mouse. This tool fills that gap.
+
+
 
 ## Requirements
 
 - macOS (developed on Apple Silicon; Intel should work)
 - Go 1.26+ (only needed to build from source)
 - `CGO_ENABLED=1` (the Makefile sets this; the hotkey and preferences code
-  use cgo)
+use cgo)
+
+
 
 ## Build
 
@@ -26,6 +29,8 @@ make build       # produces ./bin/macscrollswap
 make test        # unit tests
 make lint        # go vet + golangci-lint (if installed)
 ```
+
+
 
 ## Install
 
@@ -41,6 +46,8 @@ The daemon will start immediately and at every login. To remove:
 ```sh
 macscrollswap uninstall
 ```
+
+
 
 ## Updating after code changes
 
@@ -58,13 +65,15 @@ macscrollswap status          # confirm it came back healthy
 starts a fresh one with the updated binary. Use this whenever the LaunchAgent
 is installed (the normal setup).
 
-| Goal | Command |
-|------|---------|
+
+| Goal                               | Command                                                     |
+| ---------------------------------- | ----------------------------------------------------------- |
 | Rebuild + restart (usual workflow) | `make build && make install-local && macscrollswap restart` |
-| Check status | `macscrollswap status` |
-| Stop temporarily | `macscrollswap stop` |
-| Run in foreground (debugging) | `macscrollswap daemon` |
-| Re-enable auto-start at login | `macscrollswap install` |
+| Check status                       | `macscrollswap status`                                      |
+| Stop temporarily                   | `macscrollswap stop`                                        |
+| Run in foreground (debugging)      | `macscrollswap daemon`                                      |
+| Re-enable auto-start at login      | `macscrollswap install`                                     |
+
 
 If `restart` says the LaunchAgent is not installed, run `macscrollswap install`
 once, then use `restart` as usual.
@@ -89,12 +98,16 @@ macscrollswap config path                           # print the path to the conf
 macscrollswap version
 ```
 
+
+
 ### Default hotkeys (configurable)
 
-| Combo              | Action                              |
-|--------------------|-------------------------------------|
-| `ctrl+opt+cmd+s`   | Toggle pause/resume                 |
-| `ctrl+opt+cmd+d`   | Swap connected/disconnected targets |
+
+| Combo            | Action                              |
+| ---------------- | ----------------------------------- |
+| `ctrl+opt+cmd+s` | Toggle pause/resume                 |
+| `ctrl+opt+cmd+d` | Swap connected/disconnected targets |
+
 
 Hotkey strings are lowercase, `+`-separated, with at least one modifier
 (`ctrl`, `shift`, `opt`/`alt`, `cmd`) and a key (`a`–`z`, `0`–`9`, `space`,
@@ -121,27 +134,29 @@ keep their preference.
 ## How it works
 
 - **Bluetooth mouse detection**: polls `ioreg -a -r -c IOHIDDevice` every few
-  seconds and looks for HID devices whose `Transport` starts with `Bluetooth`
-  (covers both Classic and Bluetooth Low Energy) and whose
-  `PrimaryUsagePage`/`PrimaryUsage` is `1`/`2` (Generic Desktop → mouse). This
-  catches Apple Magic Mouse and third-party Bluetooth mice alike.
+seconds and looks for HID devices whose `Transport` starts with `Bluetooth`
+(covers both Classic and Bluetooth Low Energy) and whose
+`PrimaryUsagePage`/`PrimaryUsage` is `1`/`2` (Generic Desktop → mouse). This
+catches Apple Magic Mouse and third-party Bluetooth mice alike.
 - **Setting natural scrolling**: calls the private CoreGraphics SPI
-  `CGSSetSwipeScrollDirection` (via `_CGSDefaultConnection`) so the change takes
-  effect on the live input system immediately, then persists the value to
-  `com.apple.swipescrolldirection` in `NSGlobalDomain` via CoreFoundation
-  (`CFPreferences`) so it survives reboots, and posts a
-  `SwipeScrollDirectionDidChangeNotification` distributed notification so the
-  System Settings Mouse/Trackpad panes redraw to match if they're open.
+`CGSSetSwipeScrollDirection` (via `_CGSDefaultConnection`) so the change takes
+effect on the live input system immediately, then persists the value to
+`com.apple.swipescrolldirection` in `NSGlobalDomain` via CoreFoundation
+(`CFPreferences`) so it survives reboots, and posts a
+`SwipeScrollDirectionDidChangeNotification` distributed notification so the
+System Settings Mouse/Trackpad panes redraw to match if they're open.
 - **Hotkeys**: registered via Carbon `RegisterEventHotKey`
-  (`golang.design/x/hotkey`). On macOS this requires the daemon to run an
-  NSApplication event loop on the main thread, handled by
-  `golang.design/x/hotkey/mainthread`.
+(`golang.design/x/hotkey`). On macOS this requires the daemon to run an
+NSApplication event loop on the main thread, handled by
+`golang.design/x/hotkey/mainthread`.
 - **IPC**: JSON-RPC over a Unix-domain socket at
-  `~/Library/Application Support/macscrollswap/daemon.sock`.
+`~/Library/Application Support/macscrollswap/daemon.sock`.
 - **Notifications**: best-effort `osascript display notification` (with a
-  sound) plus a system beep on every user-visible state change (pause toggle,
-  direction swap, BT connect/disconnect, RPC-driven direction change). A failed
-  notification is logged, never fatal.
+sound) plus a system beep on every user-visible state change (pause toggle,
+direction swap, BT connect/disconnect, RPC-driven direction change). A failed
+notification is logged, never fatal.
+
+
 
 ## Logging
 
@@ -153,14 +168,16 @@ launchd also captures stdout/stderr to `daemon.stdout.log` /
 ## Limitations / known caveats
 
 - Applying the scroll direction relies on a private, undocumented CoreGraphics
-  SPI (`CGSSetSwipeScrollDirection`). It works reliably on current macOS, but
-  Apple could change or remove it in a future release; if that happens the
-  on-disk preference still updates, but the change may not take effect until the
-  next login.
+SPI (`CGSSetSwipeScrollDirection`). It works reliably on current macOS, but
+Apple could change or remove it in a future release; if that happens the
+on-disk preference still updates, but the change may not take effect until the
+next login.
 - Detection is Bluetooth-only; USB-receiver wireless mice (Logitech Unifying,
-  etc.) are intentionally ignored per the project scope.
+etc.) are intentionally ignored per the project scope.
 - The macOS APIs require running the daemon from a regular Aqua session;
-  running it over SSH is not supported.
+running it over SSH is not supported.
+
+
 
 ## Project layout
 
@@ -176,6 +193,8 @@ internal/
   notify/               macOS Notification Center + beep
   scroller/             Read/write com.apple.swipescrolldirection
 ```
+
+
 
 ## License
 
